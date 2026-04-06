@@ -1,0 +1,72 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ─────────────────────────────────────────────
+  # JOB 1: Unit Tests (ENABLED)
+  # ─────────────────────────────────────────────
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run unit tests
+        run: go test ./... -v -count=1 -short
+
+      - name: Build binary
+        run: go build -o /tmp/weather-api ./cmd/server/...
+
+  # ─────────────────────────────────────────────
+  # JOB 2: E2E API Tests (DISABLED — set if: true to enable)
+  # ─────────────────────────────────────────────
+  e2e-tests:
+    name: E2E API Tests
+    runs-on: ubuntu-latest
+    if: false  # ← Change to: true  when ready to enable
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_pass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgres://test_user:test_pass@localhost:5432/test_db
+      PORT: 8080
+      SYNC_INTERVAL_MINUTES: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Run E2E tests
+        run: go test ./... -v -run E2E

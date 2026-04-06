@@ -1,0 +1,204 @@
+{
+    "schemes": [
+        "http"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "Погодный дашборд — Go backend с Open-Meteo (без API-ключей)",
+        "title": "Weather Dashboard API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/",
+    "paths": {
+        "/api/v1/cities": {
+            "get": {
+                "description": "Returns all cities that are being monitored for weather data",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "weather"
+                ],
+                "summary": "List all tracked cities",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.City"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/sync": {
+            "post": {
+                "description": "Immediately syncs weather data for all configured cities",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sync"
+                ],
+                "summary": "Manually trigger data sync",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.SyncResult"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/weather/{city}": {
+            "get": {
+                "description": "Returns the current snapshot and historical data for the given city",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "weather"
+                ],
+                "summary": "Get weather for a city",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "City name (e.g. Moscow)",
+                        "name": "city",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 24,
+                        "description": "Number of history records to return",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.WeatherResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "models.City": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.SyncResult": {
+            "type": "object",
+            "properties": {
+                "city": {
+                    "type": "string"
+                },
+                "error": {
+                    "type": "string"
+                },
+                "new_records": {
+                    "type": "integer"
+                },
+                "skipped": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.WeatherResponse": {
+            "type": "object",
+            "properties": {
+                "city": {
+                    "$ref": "#/definitions/models.City"
+                },
+                "current": {
+                    "$ref": "#/definitions/models.WeatherSnapshot"
+                },
+                "history": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.WeatherSnapshot"
+                    }
+                }
+            }
+        },
+        "models.WeatherSnapshot": {
+            "type": "object",
+            "properties": {
+                "city_id": {
+                    "type": "integer"
+                },
+                "city_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "precipitation": {
+                    "type": "number"
+                },
+                "recorded_at": {
+                    "type": "string"
+                },
+                "synced_at": {
+                    "type": "string"
+                },
+                "temperature": {
+                    "type": "number"
+                },
+                "weather_code": {
+                    "type": "integer"
+                },
+                "windspeed": {
+                    "type": "number"
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,135 @@
+basePath: /
+definitions:
+  models.City:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      latitude:
+        type: number
+      longitude:
+        type: number
+      name:
+        type: string
+    type: object
+  models.SyncResult:
+    properties:
+      city:
+        type: string
+      error:
+        type: string
+      new_records:
+        type: integer
+      skipped:
+        type: integer
+    type: object
+  models.WeatherResponse:
+    properties:
+      city:
+        $ref: '#/definitions/models.City'
+      current:
+        $ref: '#/definitions/models.WeatherSnapshot'
+      history:
+        items:
+          $ref: '#/definitions/models.WeatherSnapshot'
+        type: array
+    type: object
+  models.WeatherSnapshot:
+    properties:
+      city_id:
+        type: integer
+      city_name:
+        type: string
+      id:
+        type: integer
+      precipitation:
+        type: number
+      recorded_at:
+        type: string
+      synced_at:
+        type: string
+      temperature:
+        type: number
+      weather_code:
+        type: integer
+      windspeed:
+        type: number
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Погодный дашборд — Go backend с Open-Meteo (без API-ключей)
+  title: Weather Dashboard API
+  version: "1.0"
+paths:
+  /api/v1/cities:
+    get:
+      description: Returns all cities that are being monitored for weather data
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.City'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List all tracked cities
+      tags:
+      - weather
+  /api/v1/sync:
+    post:
+      description: Immediately syncs weather data for all configured cities
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.SyncResult'
+            type: array
+      summary: Manually trigger data sync
+      tags:
+      - sync
+  /api/v1/weather/{city}:
+    get:
+      description: Returns the current snapshot and historical data for the given
+        city
+      parameters:
+      - description: City name (e.g. Moscow)
+        in: path
+        name: city
+        required: true
+        type: string
+      - default: 24
+        description: Number of history records to return
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.WeatherResponse'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get weather for a city
+      tags:
+      - weather
+schemes:
+- http
+swagger: "2.0"
