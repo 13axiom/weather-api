@@ -1,7 +1,8 @@
 // Package service — AirQualityService syncs and reads air quality data.
 //
 // Data flow:
-//   OpenWeatherMap API → OWMClient → AirQualityService → PostgreSQL → handler → frontend
+//
+//	OpenWeatherMap API → OWMClient → AirQualityService → PostgreSQL → handler → frontend
 //
 // The OWM API key never leaves the server. The frontend only sees
 // our own API responses, protected by the internal API key middleware.
@@ -63,7 +64,7 @@ func (s *AirQualityService) SyncAll() []models.AirQualitySyncResult {
 		if res.Error != "" {
 			log.Printf("[aq-sync] ERROR %s: %s", city, res.Error)
 		} else {
-			log.Printf("[aq-sync] %s: new=%d skipped=%d", city, res.New, res.Skipped)
+			log.Printf("[aq-sync] %s: new_data=%d skipped=%d", city, res.New, res.Skipped)
 		}
 	}
 	return results
