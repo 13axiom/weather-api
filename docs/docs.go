@@ -15,6 +15,148 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/v1/air": {
+            "get": {
+                "security": [
+                    {
+                        "InternalKey": []
+                    }
+                ],
+                "description": "Returns the most recent AQ snapshot for every tracked city",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "air-quality"
+                ],
+                "summary": "Latest air quality for all cities",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.AirQualitySnapshot"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/air/sync": {
+            "post": {
+                "security": [
+                    {
+                        "InternalKey": []
+                    }
+                ],
+                "description": "Immediately fetches fresh AQ data from OpenWeatherMap for all cities",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "air-quality"
+                ],
+                "summary": "Trigger air quality sync",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.AirQualitySyncResult"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/air/{city}": {
+            "get": {
+                "security": [
+                    {
+                        "InternalKey": []
+                    }
+                ],
+                "description": "Returns the current AQ snapshot and recent history for the given city",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "air-quality"
+                ],
+                "summary": "Air quality for a specific city",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "City name (e.g. Moscow)",
+                        "name": "city",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 24,
+                        "description": "Number of history records",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.AirQualityResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/cities": {
             "get": {
                 "description": "Returns all cities that are being monitored for weather data",
@@ -117,6 +259,95 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "models.AirQualityResponse": {
+            "type": "object",
+            "properties": {
+                "city": {
+                    "$ref": "#/definitions/models.City"
+                },
+                "current": {
+                    "$ref": "#/definitions/models.AirQualitySnapshot"
+                },
+                "history": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.AirQualitySnapshot"
+                    }
+                }
+            }
+        },
+        "models.AirQualitySnapshot": {
+            "type": "object",
+            "properties": {
+                "aqi": {
+                    "description": "AQI index: 1 (Good) … 5 (Very Poor) — OpenWeatherMap scale",
+                    "type": "integer"
+                },
+                "aqi_color": {
+                    "type": "string"
+                },
+                "aqi_label": {
+                    "description": "Computed label and colour for the frontend (not stored in DB)",
+                    "type": "string"
+                },
+                "city_id": {
+                    "type": "integer"
+                },
+                "city_name": {
+                    "type": "string"
+                },
+                "co": {
+                    "description": "Individual pollutant concentrations, all in µg/m³",
+                    "type": "number"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "no2": {
+                    "description": "Nitrogen dioxide",
+                    "type": "number"
+                },
+                "o3": {
+                    "description": "Ozone",
+                    "type": "number"
+                },
+                "pm10": {
+                    "description": "Coarse particles",
+                    "type": "number"
+                },
+                "pm2_5": {
+                    "description": "Fine particles",
+                    "type": "number"
+                },
+                "recorded_at": {
+                    "type": "string"
+                },
+                "so2": {
+                    "description": "Sulphur dioxide",
+                    "type": "number"
+                },
+                "synced_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.AirQualitySyncResult": {
+            "type": "object",
+            "properties": {
+                "city": {
+                    "type": "string"
+                },
+                "error": {
+                    "type": "string"
+                },
+                "new_records": {
+                    "type": "integer"
+                },
+                "skipped": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.City": {
             "type": "object",
             "properties": {
@@ -203,17 +434,25 @@ const docTemplate = `{
                 }
             }
         }
+    },
+    "securityDefinitions": {
+        "InternalKey": {
+            "description": "Internal API key shared between weather-ui and weather-api. Set via INTERNAL_API_KEY env var.",
+            "type": "apiKey",
+            "name": "X-Internal-Key",
+            "in": "header"
+        }
     }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "1.0",
+	Version:          "1.1",
 	Host:             "localhost:8080",
 	BasePath:         "/",
 	Schemes:          []string{"http"},
 	Title:            "Weather Dashboard API",
-	Description:      "Погодный дашборд — Go backend с Open-Meteo (без API-ключей)",
+	Description:      "Погодный дашборд + качество воздуха. Go backend.\nWeather: Open-Meteo (бесплатно, без ключа).\nAir Quality: OpenWeatherMap Air Pollution API (бесплатно, нужен OWM_API_KEY).",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

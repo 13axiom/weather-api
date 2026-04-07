@@ -32,3 +32,14 @@ docker-compose.override.yml
 # Editor/IDE
 # .idea/
 # .vscode/
+
+*.db
+/vendor/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+/docs/
