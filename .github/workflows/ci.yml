@@ -24,7 +24,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: "1.21"
           cache: true
 
       - name: Download dependencies
@@ -52,9 +52,9 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER:     weather_user
+          POSTGRES_USER: weather_user
           POSTGRES_PASSWORD: weather_pass
-          POSTGRES_DB:       weather_db
+          POSTGRES_DB: weather_db
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -64,14 +64,14 @@ jobs:
           - 5432:5432
 
     env:
-      DATABASE_URL:        postgres://weather_user:weather_pass@localhost:5432/weather_db
-      PORT:                "8080"
-      SYNC_INTERVAL_HOURS: "9999"       # no auto-sync during tests
-      INTERNAL_API_KEY:    ${{ secrets.INTERNAL_API_KEY }}
-      OWM_API_KEY:         ${{ secrets.OWM_API_KEY }}
-      ALLOWED_ORIGINS:     http://localhost:3000
+      DATABASE_URL: postgres://weather_user:weather_pass@localhost:5432/weather_db
+      PORT: "8080"
+      SYNC_INTERVAL_HOURS: "9999" # no auto-sync during tests
+      INTERNAL_API_KEY: ${{ secrets.INTERNAL_API_KEY }}
+      OWM_API_KEY: ${{ secrets.OWM_API_KEY }}
+      ALLOWED_ORIGINS: http://localhost:3000
       # Where allure-go writes JSON results
-      ALLURE_OUTPUT_PATH:  ${{ github.workspace }}/allure-results
+      ALLURE_OUTPUT_PATH: ${{ github.workspace }}/allure-results
 
     steps:
       # ── 1. Checkout this repo ────────────────────────────────────────────
@@ -90,7 +90,7 @@ jobs:
       # ── 3. Set up Go ─────────────────────────────────────────────────────
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: "1.21"
           cache: true
 
       # ── 4. Start weather-api ─────────────────────────────────────────────
@@ -107,7 +107,7 @@ jobs:
         working-directory: _api-running-portal-tests
         env:
           WEATHER_API_URL: http://localhost:8080
-          RACES_API_URL:   http://localhost:8081   # not started — auth tests skip it
+          RACES_API_URL: http://localhost:8081 # not started — auth tests skip it
           INTERNAL_API_KEY: ${{ secrets.INTERNAL_API_KEY }}
         run: |
           go mod download
@@ -119,11 +119,11 @@ jobs:
 
       # ── 6. Generate Allure HTML report ────────────────────────────────────
       - name: Generate Allure report
-        uses: simple-elf/allure-report-action@v1.7
+        uses: simple-elf/allure-report-action@v1.8
         if: always()
         with:
           allure_results: allure-results
-          allure_report:  allure-report
+          allure_report: allure-report
 
       # ── 7. Upload report as PR artifact ──────────────────────────────────
       # Artifacts are available for 30 days; click "Download" in the CI run.
