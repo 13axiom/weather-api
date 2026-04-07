@@ -1,5 +1,66 @@
 basePath: /
 definitions:
+  models.AirQualityResponse:
+    properties:
+      city:
+        $ref: '#/definitions/models.City'
+      current:
+        $ref: '#/definitions/models.AirQualitySnapshot'
+      history:
+        items:
+          $ref: '#/definitions/models.AirQualitySnapshot'
+        type: array
+    type: object
+  models.AirQualitySnapshot:
+    properties:
+      aqi:
+        description: 'AQI index: 1 (Good) … 5 (Very Poor) — OpenWeatherMap scale'
+        type: integer
+      aqi_color:
+        type: string
+      aqi_label:
+        description: Computed label and colour for the frontend (not stored in DB)
+        type: string
+      city_id:
+        type: integer
+      city_name:
+        type: string
+      co:
+        description: Individual pollutant concentrations, all in µg/m³
+        type: number
+      id:
+        type: integer
+      no2:
+        description: Nitrogen dioxide
+        type: number
+      o3:
+        description: Ozone
+        type: number
+      pm2_5:
+        description: Fine particles
+        type: number
+      pm10:
+        description: Coarse particles
+        type: number
+      recorded_at:
+        type: string
+      so2:
+        description: Sulphur dioxide
+        type: number
+      synced_at:
+        type: string
+    type: object
+  models.AirQualitySyncResult:
+    properties:
+      city:
+        type: string
+      error:
+        type: string
+      new_records:
+        type: integer
+      skipped:
+        type: integer
+    type: object
   models.City:
     properties:
       created_at:
@@ -59,10 +120,104 @@ definitions:
 host: localhost:8080
 info:
   contact: {}
-  description: Погодный дашборд — Go backend с Open-Meteo (без API-ключей)
+  description: |-
+    Погодный дашборд + качество воздуха. Go backend.
+    Weather: Open-Meteo (бесплатно, без ключа).
+    Air Quality: OpenWeatherMap Air Pollution API (бесплатно, нужен OWM_API_KEY).
   title: Weather Dashboard API
-  version: "1.0"
+  version: "1.1"
 paths:
+  /api/v1/air:
+    get:
+      description: Returns the most recent AQ snapshot for every tracked city
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.AirQualitySnapshot'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - InternalKey: []
+      summary: Latest air quality for all cities
+      tags:
+      - air-quality
+  /api/v1/air/{city}:
+    get:
+      description: Returns the current AQ snapshot and recent history for the given
+        city
+      parameters:
+      - description: City name (e.g. Moscow)
+        in: path
+        name: city
+        required: true
+        type: string
+      - default: 24
+        description: Number of history records
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.AirQualityResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - InternalKey: []
+      summary: Air quality for a specific city
+      tags:
+      - air-quality
+  /api/v1/air/sync:
+    post:
+      description: Immediately fetches fresh AQ data from OpenWeatherMap for all cities
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.AirQualitySyncResult'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - InternalKey: []
+      summary: Trigger air quality sync
+      tags:
+      - air-quality
   /api/v1/cities:
     get:
       description: Returns all cities that are being monitored for weather data
@@ -132,4 +287,11 @@ paths:
       - weather
 schemes:
 - http
+securityDefinitions:
+  InternalKey:
+    description: Internal API key shared between weather-ui and weather-api. Set via
+      INTERNAL_API_KEY env var.
+    in: header
+    name: X-Internal-Key
+    type: apiKey
 swagger: "2.0"

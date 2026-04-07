@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	_ "github.com/jackc/pgx/v5/stdlib" // pgx driver registered as "pgx"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 // DB wraps sql.DB to add project-specific methods.
@@ -20,27 +20,29 @@ func New(dsn string) (*DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open db: %w", err)
 	}
-
 	if err = db.PingContext(context.Background()); err != nil {
 		return nil, fmt.Errorf("ping db: %w", err)
 	}
-
-	// Tune connection pool for a small API server
 	db.SetMaxOpenConns(25)
 	db.SetMaxIdleConns(5)
-
 	return &DB{db}, nil
 }
 
-// Migrate runs the SQL migration file to create tables if they don't exist.
-// Safe to call on every startup — uses CREATE TABLE IF NOT EXISTS.
+// Migrate runs all SQL migration files in order.
+// Safe to call on every startup — all statements use IF NOT EXISTS.
 func (db *DB) Migrate() error {
-	query, err := os.ReadFile("internal/database/migrations/001_init.sql")
-	if err != nil {
-		return fmt.Errorf("read migration file: %w", err)
+	migrations := []string{
+		"internal/database/migrations/001_init.sql",
+		"internal/database/migrations/002_air_quality.sql",
 	}
-	if _, err = db.Exec(string(query)); err != nil {
-		return fmt.Errorf("run migration: %w", err)
+	for _, path := range migrations {
+		query, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("read migration %s: %w", path, err)
+		}
+		if _, err = db.Exec(string(query)); err != nil {
+			return fmt.Errorf("run migration %s: %w", path, err)
+		}
 	}
 	return nil
 }
