@@ -105,7 +105,7 @@ INTERNAL_API_KEY=a3f8c2d1...
 NEXT_PUBLIC_INTERNAL_KEY=a3f8c2d1...
 ```
 
-If `INTERNAL_API_KEY` is empty, the auth check is skipped (convenient for local dev)
+If `INTERNAL_API_KEY` is empty, the auth check is skipped (convenient for local dev).
 
 ---
 
