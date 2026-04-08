@@ -3,6 +3,7 @@
 Go backend for the Weather Dashboard project.
 
 Provides two data sources:
+
 - **Weather** — [Open-Meteo](https://open-meteo.com) (completely free, no API key required)
 - **Air Quality** — [OpenWeatherMap Air Pollution API](https://openweathermap.org/api/air-pollution) (free tier, requires a free API key)
 
@@ -38,21 +39,21 @@ Server starts on `http://localhost:8080`
 
 ### Weather (public — no key required)
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/health` | Health check (used by uptime monitors) |
-| GET | `/swagger/index.html` | Interactive API documentation |
-| GET | `/api/v1/cities` | List all tracked cities |
-| GET | `/api/v1/weather/{city}?limit=24` | Current weather + history |
-| POST | `/api/v1/sync` | Manually trigger weather sync |
+| Method | Path                              | Description                            |
+| ------ | --------------------------------- | -------------------------------------- |
+| GET    | `/health`                         | Health check (used by uptime monitors) |
+| GET    | `/swagger/index.html`             | Interactive API documentation          |
+| GET    | `/api/v1/cities`                  | List all tracked cities                |
+| GET    | `/api/v1/weather/{city}?limit=24` | Current weather + history              |
+| POST   | `/api/v1/sync`                    | Manually trigger weather sync          |
 
 ### Air Quality (protected — requires `X-Internal-Key` header)
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/v1/air` | Latest AQI snapshot for all cities |
-| GET | `/api/v1/air/{city}?limit=24` | Current AQI + history for one city |
-| POST | `/api/v1/air/sync` | Manually trigger air quality sync |
+| Method | Path                          | Description                        |
+| ------ | ----------------------------- | ---------------------------------- |
+| GET    | `/api/v1/air`                 | Latest AQI snapshot for all cities |
+| GET    | `/api/v1/air/{city}?limit=24` | Current AQI + history for one city |
+| POST   | `/api/v1/air/sync`            | Manually trigger air quality sync  |
 
 ---
 
@@ -60,15 +61,15 @@ Server starts on `http://localhost:8080`
 
 All settings via environment variables. Copy `.env.example` → `.env`.
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DATABASE_URL` | `postgres://...` | PostgreSQL connection string |
-| `PORT` | `8080` | HTTP server port |
-| `SYNC_INTERVAL_MINUTES` | `60` | How often to sync data (weather + AQ) |
-| `DEFAULT_CITIES` | `Moscow,London,...` | Cities to track (comma-separated) |
-| `ALLOWED_ORIGINS` | `http://localhost:3000` | CORS allowed origins |
-| `OWM_API_KEY` | _(empty)_ | OpenWeatherMap key — get free at openweathermap.org |
-| `INTERNAL_API_KEY` | _(empty)_ | Shared secret between backend and frontend |
+| Variable                | Default                 | Description                                         |
+| ----------------------- | ----------------------- | --------------------------------------------------- |
+| `DATABASE_URL`          | `postgres://...`        | PostgreSQL connection string                        |
+| `PORT`                  | `8080`                  | HTTP server port                                    |
+| `SYNC_INTERVAL_MINUTES` | `60`                    | How often to sync data (weather + AQ)               |
+| `DEFAULT_CITIES`        | `Moscow,London,...`     | Cities to track (comma-separated)                   |
+| `ALLOWED_ORIGINS`       | `http://localhost:3000` | CORS allowed origins                                |
+| `OWM_API_KEY`           | _(empty)_               | OpenWeatherMap key — get free at openweathermap.org |
+| `INTERNAL_API_KEY`      | _(empty)_               | Shared secret between backend and frontend          |
 
 ### Setting up the API keys
 
@@ -86,7 +87,7 @@ It is never sent to the browser. This is the key security property.
 
 Free tier limits: 60 calls/minute — more than enough for hourly syncs.
 
-#### 2. Internal API key (protects our own /air/* endpoints)
+#### 2. Internal API key (protects our own /air/\* endpoints)
 
 This key is **not** an external provider key — it's a secret we generate ourselves.
 The frontend sends it on every air quality request to prove it's "our" frontend,
@@ -104,7 +105,7 @@ INTERNAL_API_KEY=a3f8c2d1...
 NEXT_PUBLIC_INTERNAL_KEY=a3f8c2d1...
 ```
 
-If `INTERNAL_API_KEY` is empty, the auth check is skipped (convenient for local dev).
+If `INTERNAL_API_KEY` is empty, the auth check is skipped (convenient for local dev)
 
 ---
 

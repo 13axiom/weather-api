@@ -6,15 +6,14 @@ on:
   pull_request:
     branches: [main]
 
-# Needed to post the Allure report link as a PR comment
 permissions:
   contents: read
   pull-requests: write
 
 jobs:
-  # ──────────────────────────────────────────────────────────────────────────
+  # ────────────────────────────────────────────────────────────────────────────
   # JOB 1: Unit Tests — always runs
-  # ──────────────────────────────────────────────────────────────────────────
+  # ────────────────────────────────────────────────────────────────────────────
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
@@ -36,12 +35,12 @@ jobs:
       - name: Build binary
         run: go build -o /tmp/weather-api ./cmd/server/...
 
-  # ──────────────────────────────────────────────────────────────────────────
+  # ────────────────────────────────────────────────────────────────────────────
   # JOB 2: API Integration Tests + Allure Report
   #
   # Enabled by default on PRs to main.
   # To disable: add repository variable ENABLE_API_TESTS = false
-  # ──────────────────────────────────────────────────────────────────────────
+  # ────────────────────────────────────────────────────────────────────────────
   api-integration-tests:
     name: API Integration Tests
     runs-on: ubuntu-latest
@@ -64,36 +63,33 @@ jobs:
           - 5432:5432
 
     env:
-      DATABASE_URL: postgres://weather_user:weather_pass@localhost:5432/weather_db
-      PORT: "8080"
-      SYNC_INTERVAL_HOURS: "9999" # no auto-sync during tests
-      INTERNAL_API_KEY: ${{ secrets.INTERNAL_API_KEY }}
-      OWM_API_KEY: ${{ secrets.OWM_API_KEY }}
-      ALLOWED_ORIGINS: http://localhost:3000
-      # Where allure-go writes JSON results
-      ALLURE_OUTPUT_PATH: ${{ github.workspace }}/allure-results
+      DATABASE_URL:        postgres://weather_user:weather_pass@localhost:5432/weather_db
+      PORT:                "8080"
+      SYNC_INTERVAL_HOURS: "9999"
+      INTERNAL_API_KEY:    ${{ secrets.INTERNAL_API_KEY }}
+      OWM_API_KEY:         ${{ secrets.OWM_API_KEY }}
+      ALLOWED_ORIGINS:     http://localhost:3000
 
     steps:
-      # ── 1. Checkout this repo ────────────────────────────────────────────
+      # ── 1. Checkout weather-api ─────────────────────────────────────────────
       - name: Checkout weather-api
         uses: actions/checkout@v4
 
-      # ── 2. Checkout api-tests repo ───────────────────────────────────────
-      - name: Checkout api-tests
+      # ── 2. Checkout api-running-portal-tests ────────────────────────────────
+      - name: Checkout api-running-portal-tests
         uses: actions/checkout@v4
         with:
           repository: 13axiom/api-running-portal-tests
           path: _api-running-portal-tests
-          # If api-tests repo is private, uncomment:
-          # token: ${{ secrets.GH_PAT }}
+          # token: ${{ secrets.GH_PAT }}  # uncomment if repo is private
 
-      # ── 3. Set up Go ─────────────────────────────────────────────────────
+      # ── 3. Set up Go (to start weather-api) ────────────────────────────────
       - uses: actions/setup-go@v5
         with:
           go-version: "1.21"
           cache: true
 
-      # ── 4. Start weather-api ─────────────────────────────────────────────
+      # ── 4. Start weather-api ────────────────────────────────────────────────
       - name: Start weather-api
         run: |
           go mod download
@@ -102,31 +98,38 @@ jobs:
           timeout 30 bash -c 'until curl -sf http://localhost:8080/health; do sleep 1; done'
           echo "✅ weather-api is up"
 
-      # ── 5. Run api-tests (weather + auth suites only) ─────────────────────
-      - name: Run integration tests
+      # ── 5. Set up Java 21 + Gradle ──────────────────────────────────────────
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.7'
+
+      # ── 6. Run weather + auth test suites ──────────────────────────────────
+      - name: Run integration tests (weather + auth suites)
         working-directory: _api-running-portal-tests
         env:
-          WEATHER_API_URL: http://localhost:8080
-          RACES_API_URL: http://localhost:8081 # not started — auth tests skip it
+          WEATHER_API_URL:  http://localhost:8080
+          RACES_API_URL:    http://localhost:8081   # not started — races tests skip
           INTERNAL_API_KEY: ${{ secrets.INTERNAL_API_KEY }}
-        run: |
-          go mod download
-          mkdir -p ${{ github.workspace }}/allure-results
-          # Run weather suites + auth suite (races suite will skip — races-api not running)
-          go test ./tests/weather/... ./tests/auth/... -v -count=1 2>&1 | tee test-output.log
-        # Don't fail the job before report is uploaded
+        run: >
+          gradle test --no-daemon
+          -Dallure.results.directory=${{ github.workspace }}/allure-results
+          -Dsuite=weather
         continue-on-error: true
 
-      # ── 6. Generate Allure HTML report ────────────────────────────────────
+      # ── 7. Generate Allure HTML report ──────────────────────────────────────
       - name: Generate Allure report
         uses: simple-elf/allure-report-action@v1.8
         if: always()
         with:
           allure_results: allure-results
-          allure_report: allure-report
+          allure_report:  allure-report
 
-      # ── 7. Upload report as PR artifact ──────────────────────────────────
-      # Artifacts are available for 30 days; click "Download" in the CI run.
+      # ── 8. Upload report artifact ────────────────────────────────────────────
       - name: Upload Allure report artifact
         uses: actions/upload-artifact@v4
         if: always()
@@ -135,32 +138,20 @@ jobs:
           path: allure-report/
           retention-days: 30
 
-      - name: Upload raw results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: allure-results-weather-${{ github.run_number }}
-          path: allure-results/
-          retention-days: 30
-
-      # ── 8. Print report link in CI summary ───────────────────────────────
+      # ── 9. Job summary ───────────────────────────────────────────────────────
       - name: Write job summary
         if: always()
         run: |
           echo "## 🧪 API Integration Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "📥 Download the **Allure Report** from the Artifacts section above." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Test output" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          tail -40 _api-running-portal-tests/test-output.log 2>/dev/null || echo "(no output)" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
 
-      # ── 9. Fail the job if tests failed ──────────────────────────────────
-      # We check the exit code AFTER uploading the report
+      # ── 10. Fail if tests failed ─────────────────────────────────────────────
       - name: Check test result
+        if: always()
+        working-directory: _api-running-portal-tests
         run: |
-          if grep -q "FAIL" _api-running-portal-tests/test-output.log 2>/dev/null; then
+          if find build/reports/tests/test -name "*.xml" -exec grep -l 'failures="[^0]"' {} \; 2>/dev/null | grep -q .; then
             echo "❌ Some tests failed — see Allure report artifact"
             exit 1
           fi
