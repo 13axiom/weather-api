@@ -121,13 +121,17 @@ jobs:
           -Dsuite=weather
         continue-on-error: true
 
-      # ── 7. Generate Allure HTML report ──────────────────────────────────────
-      - name: Generate Allure report
-        uses: simple-elf/allure-report-action@v1.8
+      # ── 7. Install Allure CLI + generate HTML report ────────────────────────
+      - name: Install Allure CLI
         if: always()
-        with:
-          allure_results: allure-results
-          allure_report:  allure-report
+        run: |
+          wget -q https://github.com/allure-framework/allure2/releases/download/2.27.0/allure-2.27.0.tgz
+          tar -xzf allure-2.27.0.tgz
+          echo "$PWD/allure-2.27.0/bin" >> $GITHUB_PATH
+
+      - name: Generate Allure report
+        if: always()
+        run: allure generate allure-results --clean -o allure-report
 
       # ── 8. Upload report artifact ────────────────────────────────────────────
       - name: Upload Allure report artifact
